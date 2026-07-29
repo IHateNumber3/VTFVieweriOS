@@ -20,8 +20,8 @@ jobs:
       - name: Debug - show project.yml
         run: cat project.yml
 
-      - name: Install XcodeGen and ldid
-        run: brew install xcodegen ldid
+      - name: Install XcodeGen
+        run: brew install xcodegen
 
       - name: Generate Xcode project
         run: xcodegen generate
@@ -38,11 +38,6 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             ONLY_ACTIVE_ARCH=NO \
             build
-
-      - name: Ad-hoc fakesign the app (ldid)
-        run: |
-          APP_PATH=$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name "*.app")
-          ldid -S "$APP_PATH/VTFViewerIOS"
 
       - name: Package IPA (Payload/*.app -> .ipa)
         run: |
