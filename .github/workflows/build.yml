@@ -22,6 +22,14 @@ jobs:
         with:
           xcode-version: latest-stable
 
+      - name: Generate Xcode Project (XcodeGen)
+        run: |
+          # Встановлюємо xcodegen якщо його немає і генеруємо проект
+          if ! command -v xcodegen &> /dev/null; then
+            brew install xcodegen
+          fi
+          xcodegen generate
+
       - name: Build App for REAL iOS Device (arm64)
         run: |
           PROJ_PATH=$(find . -name "*.xcodeproj" -maxdepth 2 | head -n 1)
