@@ -22,22 +22,22 @@ jobs:
         with:
           xcode-version: latest-stable
 
-      - name: Generate Xcode Project (XcodeGen)
+      - name: Generate Project & Build IPA
         run: |
-          # Встановлюємо xcodegen якщо його немає і генеруємо проект
-          if ! command -v xcodegen &> /dev/null; then
-            brew install xcodegen
-          fi
+          # 1. Генерируем .xcodeproj через xcodegen
           xcodegen generate
 
-      - name: Build App for REAL iOS Device (arm64)
-        run: |
-          PROJ_PATH=$(find . -name "*.xcodeproj" -maxdepth 2 | head -n 1)
-          echo "Found project at: $PROJ_PATH"
-          
+          # 2. Находим точное имя сгенерированного .xcodeproj и его схемы
+          PROJ_FILE=$(ls -d *.xcodeproj | head -n 1)
+          SCHEME_NAME=$(xcodebuild -list -project "$PROJ_FILE" | grep -A 10 "Schemes:" | tail -n +2 | xargs | awk '{print $1}')
+
+          echo "Project file: $PROJ_FILE"
+          echo "Scheme name: $SCHEME_NAME"
+
+          # 3. Собираем под реальный arm64 без подписи
           xcodebuild build \
-            -project "$PROJ_PATH" \
-            -scheme VTFViewerIOS \
+            -project "$PROJ_FILE" \
+            -scheme "$SCHEME_NAME" \
             -destination 'generic/platform=iOS' \
             -configuration Release \
             -derivedDataPath build \
