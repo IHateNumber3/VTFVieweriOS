@@ -16,7 +16,6 @@ jobs:
       - name: Unzip source project
         run: |
           unzip -o source.zip
-          ls -la
 
       - name: Set up Xcode
         uses: maxim-lobanov/setup-xcode@v1
@@ -25,7 +24,6 @@ jobs:
 
       - name: Build App for REAL iOS Device (arm64)
         run: |
-          # Ищем где лежит .xcodeproj файл после распаковки
           PROJ_PATH=$(find . -name "*.xcodeproj" -maxdepth 2 | head -n 1)
           echo "Found project at: $PROJ_PATH"
           
@@ -35,15 +33,17 @@ jobs:
             -destination 'generic/platform=iOS' \
             -configuration Release \
             -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_ENTITLEMENTS="" \
+            CODE_SIGNING_INJECT_BASE_ENTITLEMENTS=NO \
+            DEVELOPMENT_TEAM="" \
             IPHONEOS_DEPLOYMENT_TARGET=15.0
 
       - name: Package to IPA
         run: |
           mkdir -p Payload
-          # Находим собранный .app файл вне зависимости от структуры папок
           APP_PATH=$(find build/Build/Products/Release-iphoneos -name "*.app" -type d | head -n 1)
           cp -r "$APP_PATH" Payload/
           zip -r VTFViewerIOS.ipa Payload
