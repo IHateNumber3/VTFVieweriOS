@@ -22,19 +22,33 @@ jobs:
         with:
           xcode-version: latest-stable
 
-      - name: Generate Project & Build IPA
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Project and Build IPA
         run: |
-          # 1. Генерируем .xcodeproj через xcodegen
+          # 1. Знаходимо де саме лежить project.yml
+          YML_PATH=$(find . -name "project.yml" | head -n 1)
+          if [ -z "$YML_PATH" ]; then
+            echo "ERROR: project.yml not found!"
+            exit 1
+          fi
+          
+          WORK_DIR=$(dirname "$YML_PATH")
+          cd "$WORK_DIR"
+          echo "Working directory set to: $(pwd)"
+
+          # 2. Генеруємо Xcode проект
           xcodegen generate
 
-          # 2. Находим точное имя сгенерированного .xcodeproj и его схемы
+          # 3. Знаходимо згенерований .xcodeproj та його схему
           PROJ_FILE=$(ls -d *.xcodeproj | head -n 1)
           SCHEME_NAME=$(xcodebuild -list -project "$PROJ_FILE" | grep -A 10 "Schemes:" | tail -n +2 | xargs | awk '{print $1}')
 
           echo "Project file: $PROJ_FILE"
           echo "Scheme name: $SCHEME_NAME"
 
-          # 3. Собираем под реальный arm64 без подписи
+          # 4. Компілюємо під arm64 без підпису
           xcodebuild build \
             -project "$PROJ_FILE" \
             -scheme "$SCHEME_NAME" \
@@ -49,12 +63,11 @@ jobs:
             DEVELOPMENT_TEAM="" \
             IPHONEOS_DEPLOYMENT_TARGET=15.0
 
-      - name: Package to IPA
-        run: |
+          # 5. Пакуємо в IPA
           mkdir -p Payload
           APP_PATH=$(find build/Build/Products/Release-iphoneos -name "*.app" -type d | head -n 1)
           cp -r "$APP_PATH" Payload/
-          zip -r VTFViewerIOS.ipa Payload
+          zip -r ../VTFViewerIOS.ipa Payload
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
