@@ -1,50 +1,48 @@
-name: Build unsigned IPA
+name: Build iOS App
 
 on:
-  workflow_dispatch:
   push:
-    paths:
-      - "source.zip"
-      - ".github/workflows/build.yml"
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: macos-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Unzip source
-        run: unzip -o source.zip
-
-      - name: Install XcodeGen
-        run: brew install xcodegen
-
-      - name: Generate Xcode project
-        run: xcodegen generate
-
-      - name: Build unsigned .app
+      - name: Unzip source project
         run: |
-          xcodebuild \
+          unzip source.zip
+
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Build App for REAL iOS Device (arm64)
+        run: |
+          xcodebuild build \
             -project VTFViewerIOS.xcodeproj \
             -scheme VTFViewerIOS \
+            -destination 'generic/platform=iOS' \
             -configuration Release \
-            -sdk iphoneos \
             -derivedDataPath build \
-            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            ONLY_ACTIVE_ARCH=NO \
-            build
+            CODE_SIGNING_ALLOWED=NO \
+            IPHONEOS_DEPLOYMENT_TARGET=15.0
 
-      - name: Package IPA (Payload/*.app -> .ipa)
+      - name: Package to IPA
         run: |
-          APP_PATH=$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name "*.app")
-          mkdir Payload
-          cp -r "$APP_PATH" Payload/
+          mkdir -p Payload
+          cp -r build/Build/Products/Release-iphoneos/VTFViewerIOS.app Payload/
           zip -r VTFViewerIOS.ipa Payload
 
-      - name: Upload IPA artifact
+      - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: VTFViewerIOS-unsigned-ipa
+          name: VTFViewerIOS-IPA
           path: VTFViewerIOS.ipa
